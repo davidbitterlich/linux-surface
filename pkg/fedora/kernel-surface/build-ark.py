@@ -10,8 +10,13 @@ import time
 
 
 def system(cmd: str) -> None:
+    # add debug lines
+    print(f"\n=== RUNNING: {cmd}", flush=True)
+    start = time.time()
     subprocess.run(cmd, shell=True, check=True)
 
+    elapsed = time.time() - start
+    print(f"\n=== FINISHED ({elapsed:.2f}s): {cmd}\n", flush=True)
 
 parser = argparse.ArgumentParser(usage="Build a patched Fedora kernel")
 
