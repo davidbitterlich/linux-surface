@@ -32,14 +32,14 @@ jobs:
             xargs -I {} gh cache delete {} --repo ${{ github.repository }} || true
 
       - name: Checkout linux-surface repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           repository: davidbitterlich/linux-surface
           path: linux-surface
           token: ${{ secrets.DAVIDSSURFACEBOT_TOKEN }}
 
       - name: Checkout kernel repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           repository: davidbitterlich/kernel
           path: kernel
