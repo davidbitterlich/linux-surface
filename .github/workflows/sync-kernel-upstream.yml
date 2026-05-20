@@ -37,6 +37,7 @@ jobs:
           repository: davidbitterlich/linux-surface
           path: linux-surface
           token: ${{ secrets.DAVIDSSURFACEBOT_TOKEN }}
+          persist-credentials: false
 
       - name: Checkout kernel repository
         uses: actions/checkout@v4
@@ -45,6 +46,7 @@ jobs:
           path: kernel
           fetch-depth: 0
           token: ${{ secrets.DAVIDSSURFACEBOT_TOKEN }}
+          persist-credentials: false
 
       - name: Setup git identity
         run: |
