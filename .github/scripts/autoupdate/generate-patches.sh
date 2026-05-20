@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Generate kernel patches from linux-surface/kernel repository
+# Generate kernel patches from davidbitterlich/kernel repository
 #
 # This script:
-# 1. Clones the linux-surface/kernel repository
+# 1. Clones the davidbitterlich/kernel repository
 # 2. Detects the base kernel version using git describe
 # 3. Uses git-format-patchsets to generate patches
 # 4. Outputs patches to the appropriate directory
@@ -37,7 +37,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 WORK_DIR="${REPO_ROOT}/.tmp-patch-gen"
 
 # Configuration
-KERNEL_REPO="https://github.com/linux-surface/kernel"
+KERNEL_REPO="https://github.com/davidbitterlich/kernel"
 GIT_TOOLS_REPO="https://github.com/qzed/git-tools"
 
 echo "============================================"

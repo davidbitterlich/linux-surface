@@ -2,7 +2,7 @@
 #
 # Rebase kernel branch onto latest stable tag
 #
-# This script must be run from within a linux-surface/kernel git repository.
+# This script must be run from within a davidbitterlich/kernel git repository.
 # It will:
 # 1. Detect the current base version using git describe
 # 2. Detect the latest stable tag for the same kernel version

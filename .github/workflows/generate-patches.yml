@@ -93,7 +93,7 @@ jobs:
           cat > /tmp/commit-msg <<EOF
           patches/v${KERNEL_VERSION}: Update to ${BASE_VERSION}
 
-          Generated ${PATCH_COUNT} patches from linux-surface/kernel branch ${{ inputs.branch }}
+          Generated ${PATCH_COUNT} patches from davidbitterlich/kernel branch ${{ inputs.branch }}
 
           Base version: ${BASE_VERSION}
           Branch: ${{ inputs.branch }}
@@ -126,7 +126,7 @@ jobs:
             --body "$(cat <<EOF
           ## Summary
 
-          Automatic patch update for kernel version **v${KERNEL_VERSION}** from the linux-surface/kernel repository.
+          Automatic patch update for kernel version **v${KERNEL_VERSION}** from the davidbitterlich/kernel repository.
 
           ### Details
           - **Kernel branch**: \`${BRANCH}\`
@@ -135,7 +135,7 @@ jobs:
           - **Patches directory**: \`patches/${KERNEL_VERSION}/\`
 
           ### Changes
-          This PR updates kernel patches to the latest version from the \`${BRANCH}\` branch in the [linux-surface/kernel](https://github.com/linux-surface/kernel/tree/${BRANCH}) repository.
+          This PR updates kernel patches to the latest version from the \`${BRANCH}\` branch in the [davidbitterlich/kernel](https://github.com/davidbitterlich/kernel/tree/${BRANCH}) repository.
 
           Patches were generated using \`git-format-patchsets\` with flags: \`-t --no-confirm\`
 

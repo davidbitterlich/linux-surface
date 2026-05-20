@@ -2,7 +2,7 @@
 #
 # Build kernel to validate rebase
 #
-# This script must be run from within a linux-surface/kernel git repository.
+# This script must be run from within a davidbitterlich/kernel git repository.
 # It will:
 # 1. Validate the kernel source directory and version
 # 2. Collect and merge kernel configs (base + surface + overrides)
