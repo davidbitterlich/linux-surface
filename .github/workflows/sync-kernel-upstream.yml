@@ -94,7 +94,11 @@ jobs:
       - name: Configure git authentication
         working-directory: kernel
         run: |
-          git remote set-url origin "https://x-access-token:${{ secrets.DAVIDSSURFACEBOT_TOKEN }}@github.com/davidbitterlich/kernel.git"
+          git config --global credential.helper store
+
+          echo "https://x-access-token:${{ secrets.DAVIDSSURFACEBOT_TOKEN }}@github.com" > ~/.git-credentials
+
+          git remote set-url origin https://github.com/davidbitterlich/kernel.git
 
           git remote -v
 
