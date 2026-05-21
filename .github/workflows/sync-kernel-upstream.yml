@@ -91,14 +91,6 @@ jobs:
 
           echo "master_updated=true" >> "${GITHUB_OUTPUT}"
 
-      - name: Configure git authentication
-        working-directory: kernel
-        run: |
-          git remote set-url origin \
-            https://x-access-token:${{ secrets.DAVIDSSURFACEBOT_TOKEN }}@github.com/davidbitterlich/kernel.git
-
-          git remote -v
-
       - name: Push changes
         if: steps.sync.outputs.new_tags != '0' || steps.sync.outputs.master_updated == 'true'
         working-directory: kernel
