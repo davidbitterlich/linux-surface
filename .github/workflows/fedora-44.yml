@@ -45,6 +45,17 @@ jobs:
             -- \
             bash ./.github/scripts/package/fedora.sh setup-secureboot
 
+      - name: Setup swap
+        run: |
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          echo "=== MEMORY STATUS ==="
+          free -h
+          echo "=== SWAP STATUS ==="
+          swapon --show
+
       - name: Build packages
         run: |
           bash ./.github/scripts/container/exec.sh \
