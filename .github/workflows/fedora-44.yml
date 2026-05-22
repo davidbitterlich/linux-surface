@@ -47,10 +47,10 @@ jobs:
 
       - name: Setup swap
         run: |
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
+          sudo fallocate -l 8G /temp_swapfile
+          sudo chmod 600 /temp_swapfile
+          sudo mkswap /temp_swapfile
+          sudo swapon /temp_swapfile
           echo "=== MEMORY STATUS ==="
           free -h
           echo "=== SWAP STATUS ==="
