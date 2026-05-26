@@ -1,0 +1,72 @@
+From 6a87f015d3b46cbc0711dc406c045edba97d6e43 Mon Sep 17 00:00:00 2001
+From: "Bart Groeneveld | GPX Solutions B.V" <bart@gpxbv.nl>
+Date: Mon, 5 Dec 2022 16:08:46 +0100
+Subject: [PATCH] acpi: allow usage of acpi_tad on HW-reduced platforms
+
+The specification [1] allows so-called HW-reduced platforms,
+which do not implement everything, especially the wakeup related stuff.
+
+In that case, it is still usable as a RTC. This is helpful for [2]
+and [3], which is about a device with no other working RTC,
+but it does have an HW-reduced TAD, which can be used as a RTC instead.
+
+[1]: https://uefi.org/specs/ACPI/6.5/09_ACPI_Defined_Devices_and_Device_Specific_Objects.html#time-and-alarm-device
+[2]: https://bugzilla.kernel.org/show_bug.cgi?id=212313
+[3]: https://github.com/linux-surface/linux-surface/issues/415
+
+Signed-off-by: Bart Groeneveld | GPX Solutions B.V. <bart@gpxbv.nl>
+Patchset: rtc
+---
+ drivers/acpi/acpi_tad.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/drivers/acpi/acpi_tad.c b/drivers/acpi/acpi_tad.c
+index 386fc1abcbdc..e30f2eb556e3 100644
+--- a/drivers/acpi/acpi_tad.c
++++ b/drivers/acpi/acpi_tad.c
+@@ -473,6 +473,14 @@ static ssize_t caps_show(struct device *dev, struct device_attribute *attr,
+ 
+ static DEVICE_ATTR_RO(caps);
+ 
++static struct attribute *acpi_tad_attrs[] = {
++	&dev_attr_caps.attr,
++	NULL,
++};
++static const struct attribute_group acpi_tad_attr_group = {
++	.attrs	= acpi_tad_attrs,
++};
++
+ static ssize_t ac_alarm_store(struct device *dev, struct device_attribute *attr,
+ 			      const char *buf, size_t count)
+ {
+@@ -521,6 +529,16 @@ static ssize_t ac_status_show(struct device *dev, struct device_attribute *attr,
+ 
+ static DEVICE_ATTR_RW(ac_status);
+ 
++static struct attribute *acpi_tad_ac_attrs[] = {
++	&dev_attr_ac_alarm.attr,
++	&dev_attr_ac_policy.attr,
++	&dev_attr_ac_status.attr,
++	NULL,
++};
++static const struct attribute_group acpi_tad_ac_attr_group = {
++	.attrs	= acpi_tad_ac_attrs,
++};
++
+ static ssize_t dc_alarm_store(struct device *dev, struct device_attribute *attr,
+ 			      const char *buf, size_t count)
+ {
+@@ -798,6 +816,10 @@ static void acpi_tad_remove(void *data)
+ 	device_init_wakeup(dev, false);
+ 
+ 	scoped_guard(pm_runtime_noresume, dev) {
++		if (dd->capabilities & ACPI_TAD_AC_WAKE) {
++			acpi_tad_disable_timer(dev, ACPI_TAD_AC_TIMER);
++			acpi_tad_clear_status(dev, ACPI_TAD_AC_TIMER);
++		}
+ 		if (dd->capabilities & ACPI_TAD_AC_WAKE) {
+ 			acpi_tad_disable_timer(dev, ACPI_TAD_AC_TIMER);
+ 			acpi_tad_clear_status(dev, ACPI_TAD_AC_TIMER);
+-- 
+2.50.1 (Apple Git-155)
+

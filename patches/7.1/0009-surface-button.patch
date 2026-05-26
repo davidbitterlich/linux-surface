@@ -1,0 +1,44 @@
+From 34b7c85e5d6de7070b8d01b079074977e92fc0a5 Mon Sep 17 00:00:00 2001
+From: Sachi King <nakato@nakato.io>
+Date: Tue, 5 Oct 2021 00:22:57 +1100
+Subject: [PATCH] platform/surface: surfacepro3_button: don't load on amd
+ variant
+
+The AMD variant of the Surface Laptop report 0 for their OEM platform
+revision.  The Surface devices that require the surfacepro3_button
+driver do not have the _DSM that gets the OEM platform revision.  If the
+method does not exist, load surfacepro3_button.
+
+Fixes: 64dd243d7356 ("platform/x86: surfacepro3_button: Fix device check")
+Co-developed-by: Maximilian Luz <luzmaximilian@gmail.com>
+
+Signed-off-by: Sachi King <nakato@nakato.io>
+Patchset: surface-button
+---
+ drivers/platform/surface/surfacepro3_button.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/platform/surface/surfacepro3_button.c b/drivers/platform/surface/surfacepro3_button.c
+index 388a3e1a488c..a1d9b2eb8edc 100644
+--- a/drivers/platform/surface/surfacepro3_button.c
++++ b/drivers/platform/surface/surfacepro3_button.c
+@@ -149,13 +149,15 @@ static int surface_button_resume(struct device *dev)
+ /*
+  * Surface Pro 4 and Surface Book 2 / Surface Pro 2017 use the same device
+  * ID (MSHW0040) for the power/volume buttons. Make sure this is the right
+- * device by checking for the _DSM method and OEM Platform Revision.
++ * device by checking for the _DSM method and OEM Platform Revision DSM
++ * function.
+  *
+  * Returns true if the driver should bind to this device, i.e. the device is
+  * either MSWH0028 (Pro 3) or MSHW0040 on a Pro 4 or Book 1.
+  */
+ static bool surface_button_check_MSHW0040(struct device *dev, acpi_handle handle)
+ {
++	acpi_handle handle = dev->handle;
+ 	union acpi_object *result;
+ 	u64 oem_platform_rev = 0;	// valid revisions are nonzero
+ 
+-- 
+2.50.1 (Apple Git-155)
+
