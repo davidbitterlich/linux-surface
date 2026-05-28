@@ -32,7 +32,7 @@ jobs:
             xargs -I {} gh cache delete {} --repo ${{ github.repository }} || true
 
       - name: Checkout linux-surface repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: davidbitterlich/linux-surface
           path: linux-surface
@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout kernel repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: davidbitterlich/kernel
           path: kernel
