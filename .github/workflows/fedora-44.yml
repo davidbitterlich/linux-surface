@@ -21,6 +21,8 @@ jobs:
   build:
     name: Build Kernel
     runs-on: ubuntu-latest
+    timeout-minutes: 180
+    max_attempts: 2
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
