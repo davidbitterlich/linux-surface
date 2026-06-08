@@ -28,10 +28,6 @@ index 386fc1abcbdc..e30f2eb556e3 100644
  
  static DEVICE_ATTR_RO(caps);
  
-+static struct attribute *acpi_tad_attrs[] = {
-+	&dev_attr_caps.attr,
-+	NULL,
-+};
 +static const struct attribute_group acpi_tad_attr_group = {
 +	.attrs	= acpi_tad_attrs,
 +};
