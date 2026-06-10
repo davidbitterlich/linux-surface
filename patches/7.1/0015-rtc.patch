@@ -1,4 +1,4 @@
-From 6a87f015d3b46cbc0711dc406c045edba97d6e43 Mon Sep 17 00:00:00 2001
+From 319d70414d801b257b60e9e3eedc84c98410bb67 Mon Sep 17 00:00:00 2001
 From: "Bart Groeneveld | GPX Solutions B.V" <bart@gpxbv.nl>
 Date: Mon, 5 Dec 2022 16:08:46 +0100
 Subject: [PATCH] acpi: allow usage of acpi_tad on HW-reduced platforms
@@ -28,6 +28,10 @@ index 386fc1abcbdc..e30f2eb556e3 100644
  
  static DEVICE_ATTR_RO(caps);
  
++static struct attribute *acpi_tad_attrs[] = {
++	&dev_attr_caps.attr,
++	NULL,
++};
 +static const struct attribute_group acpi_tad_attr_group = {
 +	.attrs	= acpi_tad_attrs,
 +};
@@ -64,5 +68,5 @@ index 386fc1abcbdc..e30f2eb556e3 100644
  			acpi_tad_disable_timer(dev, ACPI_TAD_AC_TIMER);
  			acpi_tad_clear_status(dev, ACPI_TAD_AC_TIMER);
 -- 
-2.50.1 (Apple Git-155)
+2.54.0
 

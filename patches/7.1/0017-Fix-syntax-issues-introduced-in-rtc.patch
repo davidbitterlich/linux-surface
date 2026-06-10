@@ -1,0 +1,38 @@
+From abd9b3430c41d69082ec9571ca66c80f6e3a1ea6 Mon Sep 17 00:00:00 2001
+From: surfacebot <surfacebot@users.noreply.github.com>
+Date: Wed, 10 Jun 2026 08:03:56 +0200
+Subject: [PATCH] Fix syntax issues introduced in 0015-rtc.patch
+
+---
+ drivers/acpi/acpi_tad.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/drivers/acpi/acpi_tad.c b/drivers/acpi/acpi_tad.c
+index e30f2eb556e3..edbde058922f 100644
+--- a/drivers/acpi/acpi_tad.c
++++ b/drivers/acpi/acpi_tad.c
+@@ -473,10 +473,6 @@ static ssize_t caps_show(struct device *dev, struct device_attribute *attr,
+ 
+ static DEVICE_ATTR_RO(caps);
+ 
+-static struct attribute *acpi_tad_attrs[] = {
+-	&dev_attr_caps.attr,
+-	NULL,
+-};
+ static const struct attribute_group acpi_tad_attr_group = {
+ 	.attrs	= acpi_tad_attrs,
+ };
+@@ -816,10 +812,6 @@ static void acpi_tad_remove(void *data)
+ 	device_init_wakeup(dev, false);
+ 
+ 	scoped_guard(pm_runtime_noresume, dev) {
+-		if (dd->capabilities & ACPI_TAD_AC_WAKE) {
+-			acpi_tad_disable_timer(dev, ACPI_TAD_AC_TIMER);
+-			acpi_tad_clear_status(dev, ACPI_TAD_AC_TIMER);
+-		}
+ 		if (dd->capabilities & ACPI_TAD_AC_WAKE) {
+ 			acpi_tad_disable_timer(dev, ACPI_TAD_AC_TIMER);
+ 			acpi_tad_clear_status(dev, ACPI_TAD_AC_TIMER);
+-- 
+2.54.0
+
