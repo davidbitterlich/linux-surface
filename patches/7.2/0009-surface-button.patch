@@ -1,4 +1,4 @@
-From c725385d112b2178bfa5e41cee06cb4cecc125ab Mon Sep 17 00:00:00 2001
+From 5fc6e6ce84580b6e3816381a9947d9a8244bdc3f Mon Sep 17 00:00:00 2001
 From: Sachi King <nakato@nakato.io>
 Date: Tue, 5 Oct 2021 00:05:09 +1100
 Subject: [PATCH] Input: soc_button_array - support AMD variant Surface devices
@@ -20,10 +20,10 @@ Patchset: surface-button
  1 file changed, 8 insertions(+), 25 deletions(-)
 
 diff --git a/drivers/input/misc/soc_button_array.c b/drivers/input/misc/soc_button_array.c
-index b8cad415c62c..43b5d56383e3 100644
+index f08e29af5..918a81ca9 100644
 --- a/drivers/input/misc/soc_button_array.c
 +++ b/drivers/input/misc/soc_button_array.c
-@@ -540,8 +540,8 @@ static const struct soc_device_data soc_device_MSHW0028 = {
+@@ -548,8 +548,8 @@ static const struct soc_device_data soc_device_MSHW0028 = {
   * Both, the Surface Pro 4 (surfacepro3_button.c) and the above mentioned
   * devices use MSHW0040 for power and volume buttons, however the way they
   * have to be addressed differs. Make sure that we only load this drivers
@@ -34,7 +34,7 @@ index b8cad415c62c..43b5d56383e3 100644
   */
  #define MSHW0040_DSM_REVISION		0x01
  #define MSHW0040_DSM_GET_OMPR		0x02	// get OEM Platform Revision
-@@ -552,31 +552,14 @@ static const guid_t MSHW0040_DSM_UUID =
+@@ -560,31 +560,14 @@ static const guid_t MSHW0040_DSM_UUID =
  static int soc_device_check_MSHW0040(struct device *dev)
  {
  	acpi_handle handle = ACPI_HANDLE(dev);
@@ -75,7 +75,7 @@ index b8cad415c62c..43b5d56383e3 100644
 -- 
 2.55.0
 
-From e332a6829b649a6beacf0011f01cf345dedd4bbc Mon Sep 17 00:00:00 2001
+From a17ff736755c4bd4075db9871d67886e00a6a17f Mon Sep 17 00:00:00 2001
 From: Sachi King <nakato@nakato.io>
 Date: Tue, 5 Oct 2021 00:22:57 +1100
 Subject: [PATCH] platform/surface: surfacepro3_button: don't load on amd
@@ -92,11 +92,11 @@ Co-developed-by: Maximilian Luz <luzmaximilian@gmail.com>
 Signed-off-by: Sachi King <nakato@nakato.io>
 Patchset: surface-button
 ---
- drivers/platform/surface/surfacepro3_button.c | 35 +++++--------------
- 1 file changed, 8 insertions(+), 27 deletions(-)
+ drivers/platform/surface/surfacepro3_button.c | 31 ++++---------------
+ 1 file changed, 6 insertions(+), 25 deletions(-)
 
 diff --git a/drivers/platform/surface/surfacepro3_button.c b/drivers/platform/surface/surfacepro3_button.c
-index 388a3e1a488c..00ee6b31cc66 100644
+index 388a3e1a4..f94510dbd 100644
 --- a/drivers/platform/surface/surfacepro3_button.c
 +++ b/drivers/platform/surface/surfacepro3_button.c
 @@ -149,37 +149,18 @@ static int surface_button_resume(struct device *dev)
@@ -110,8 +110,7 @@ index 388a3e1a488c..00ee6b31cc66 100644
   * Returns true if the driver should bind to this device, i.e. the device is
   * either MSWH0028 (Pro 3) or MSHW0040 on a Pro 4 or Book 1.
   */
--static bool surface_button_check_MSHW0040(struct device *dev, acpi_handle handle)
-+static bool surface_button_check_MSHW0040(acpi_handle handle)
+ static bool surface_button_check_MSHW0040(struct device *dev, acpi_handle handle)
  {
 -	union acpi_object *result;
 -	u64 oem_platform_rev = 0;	// valid revisions are nonzero
@@ -144,15 +143,6 @@ index 388a3e1a488c..00ee6b31cc66 100644
  }
  
  
-@@ -198,7 +179,7 @@ static int surface_button_probe(struct platform_device *pdev)
- 	    strlen(SURFACE_BUTTON_OBJ_NAME)))
- 		return -ENODEV;
- 
--	if (!surface_button_check_MSHW0040(&pdev->dev, device->handle))
-+	if (!surface_button_check_MSHW0040(device->handle))
- 		return -ENODEV;
- 
- 	button = kzalloc_obj(struct surface_button);
 -- 
 2.55.0
 
