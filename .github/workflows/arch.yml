@@ -4,20 +4,58 @@ env:
   GPG_KEY_ID: 56C464BAAC421453
 
 on:
-  push:
-    tags:
-      - 'arch-*'
+  # Test builds for automatic package updates. These packages are released
+  # after merging (see release-package.yml).
+  pull_request:
+    paths:
+      - 'pkg/arch/kernel/**'
 
   repository_dispatch:
+
+  # Manual build, optionally releasing the packages
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release the packages: tag the built commit (tag name based on the package version) and publish the packages to the package repository'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
     name: Build Kernel
     runs-on: ubuntu-latest
+    # Only build pull requests from our autoupdate branches
+    if: >-
+      github.event_name != 'pull_request' || (
+        startsWith(github.head_ref, 'autoupdate/') &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+
+      - name: Determine release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          VERSIONS="$(bash ./.github/scripts/autoupdate/package/arch.sh current)"
+          VERSION="$(echo "${VERSIONS}" | sed -n 's/^version=//p')"
+          REVISION="$(echo "${VERSIONS}" | sed -n 's/^release=//p')"
+          TAG="arch-${VERSION}-${REVISION}"
+
+          echo "Release tag: ${TAG}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+          # Fail early instead of after the build
+          if [ "${RELEASE}" = "true" ] && gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" > /dev/null 2>&1; then
+            echo "::error::Tag ${TAG} already exists, bump the package release to release a new build"
+            exit 1
+          fi
 
       - name: Initialize containers
         run: |
@@ -61,9 +99,20 @@ jobs:
           name: arch-latest
           path: pkg/arch/kernel/release
 
+      - name: Record build inputs
+        run: |
+          bash ./.github/scripts/package/build-inputs.sh arch > build-inputs.txt
+          cat build-inputs.txt
+
+      - name: Upload build inputs
+        uses: actions/upload-artifact@v7
+        with:
+          name: arch-inputs
+          path: build-inputs.txt
+
   release:
     name: Publish release
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
+    if: github.event_name == 'workflow_dispatch' && inputs.release
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -84,11 +133,11 @@ jobs:
 
   repo:
     name: Update package repository
-    needs: [release]
+    needs: [build, release]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download artifacts
         uses: actions/download-artifact@v8

@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Cache kernel repository
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: kernel/.git
           key: kernel-git-${{ github.run_number }}
@@ -32,7 +32,7 @@ jobs:
             xargs -I {} gh cache delete {} --repo ${{ github.repository }} || true
 
       - name: Checkout linux-surface repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: davidbitterlich/linux-surface
           path: linux-surface
@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout kernel repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: davidbitterlich/kernel
           path: kernel

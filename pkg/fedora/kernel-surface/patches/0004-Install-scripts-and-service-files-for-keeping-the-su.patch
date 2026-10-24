@@ -1,7 +1,7 @@
-From ecab87af2454278333f77f073bfd167d016987a9 Mon Sep 17 00:00:00 2001
-From: David Bitterlich <david-bitterlich@t-online.de>
-Date: Wed, 19 Aug 2026 10:34:26 +0200
-Subject: [PATCH] Install scripts and service files for keeping the surface
+From b7423396c17f147a5a25618aa4d18b1458c233b0 Mon Sep 17 00:00:00 2001
+From: Dorian Stoll <dorian.stoll@tmsp.io>
+Date: Tue, 30 Sep 2025 20:12:29 +0200
+Subject: [PATCH 4/6] Install scripts and service files for keeping the surface
  kernel the default
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH] Install scripts and service files for keeping the surface
  1 file changed, 33 insertions(+)
 
 diff --git a/redhat/kernel.spec.template b/redhat/kernel.spec.template
-index abf347099a17..e8311542956a 100644
+index 27f9f69ea0ff..3c9c6846ade9 100644
 --- a/redhat/kernel.spec.template
 +++ b/redhat/kernel.spec.template
 @@ -1214,6 +1214,11 @@ Source4000: README.rst
@@ -46,7 +46,7 @@ index abf347099a17..e8311542956a 100644
  %package doc
  Summary: Various documentation bits found in the kernel source
  Group: Documentation
-@@ -3814,6 +3827,11 @@ find Documentation -type d | xargs chmod u+w
+@@ -3818,6 +3831,11 @@ find Documentation -type d | xargs chmod u+w
  
  cd linux-%{KVERREL}
  
@@ -58,7 +58,7 @@ index abf347099a17..e8311542956a 100644
  # re-define RPM_VMLINUX_H, because it doesn't carry over from %build
  RPM_VMLINUX_H="$(cat ../vmlinux_h_path)"
  
-@@ -4252,6 +4270,15 @@ install -m 644 $_kmap_basedir/kernel-map.json $_kmap_destbase/kernel-map-%{KVERR
+@@ -4256,6 +4274,15 @@ install -m 644 $_kmap_basedir/kernel-map.json $_kmap_destbase/kernel-map-%{KVERR
  ### scripts
  ###
  
@@ -74,7 +74,7 @@ index abf347099a17..e8311542956a 100644
  %if %{with_tools}
  %post -n %{name}-tools-libs
  /sbin/ldconfig
-@@ -4807,6 +4834,12 @@ fi\
+@@ -4811,6 +4838,12 @@ fi\
  %{_datadir}/%{name}-kmap-internal/kernel-map-%{KVERREL}.json
  %endif
  
@@ -88,5 +88,5 @@ index abf347099a17..e8311542956a 100644
  %if %{with_stock_base}
  %ifnarch noarch %{nobuildarches}
 -- 
-2.55.0
+2.56.0
 

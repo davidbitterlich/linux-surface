@@ -1,0 +1,250 @@
+name: Update Package
+run-name: Update ${{ inputs.distro }} package${{ inputs.version && format(' to {0}', inputs.version) || '' }}
+
+on:
+  # Manual trigger with inputs
+  workflow_dispatch:
+    inputs:
+      distro:
+        description: 'Distribution to update the package for'
+        required: true
+        type: choice
+        options:
+          - arch
+          - debian
+          - fedora
+      version:
+        description: 'Kernel version (optional, e.g. "7.2.12"). If not specified, the base version of the patches is used. If already packaged, the package release is bumped.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run mode - skip push and pull request creation'
+        required: false
+        type: boolean
+        default: false
+
+# Prevent concurrent updates of the same package
+concurrency:
+  group: update-package-${{ inputs.distro }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update ${{ inputs.distro }} package
+    runs-on: ubuntu-latest
+
+    env:
+      DISTRO: ${{ inputs.distro }}
+      SCRIPT: .github/scripts/autoupdate/package/${{ inputs.distro }}.sh
+
+    steps:
+      - name: Checkout linux-surface repo
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.LINUX_SURFACE_BOT_TOKEN }}
+
+      - name: Determine version
+        id: version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -z "${VERSION}" ]; then
+            SERIES="$(bash "${SCRIPT}" current | sed -n 's/^series=//p')"
+            VERSION="$(sed 's/^v//' "patches/${SERIES}/BASE")"
+          fi
+
+          echo "Updating ${DISTRO} package to ${VERSION}"
+          echo "version=${VERSION#v}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check upstream sources
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          RC=0
+          bash "${SCRIPT}" check "${VERSION}" > "${RUNNER_TEMP}/check.txt" || RC=$?
+          cat "${RUNNER_TEMP}/check.txt"
+
+          if [ "${RC}" -eq 2 ]; then
+            REASON="$(sed -n 's/^reason=//p' "${RUNNER_TEMP}/check.txt")"
+            echo "⏳ Upstream sources for ${VERSION} are not available yet: ${REASON}" >> "${GITHUB_STEP_SUMMARY}"
+            echo "::error::Upstream sources for ${VERSION} are not available yet: ${REASON}"
+          fi
+
+          exit "${RC}"
+
+      - name: Update package
+        id: update
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          WORK_DIR: ${{ runner.temp }}/work
+        run: |
+          bash "${SCRIPT}" update "${VERSION}" | tee -a "${GITHUB_OUTPUT}"
+
+      - name: Commit changes
+        id: commit
+        env:
+          VERSION: ${{ steps.update.outputs.version }}
+          RELEASE: ${{ steps.update.outputs.release }}
+          PACKAGE_VERSION: ${{ steps.update.outputs.package_version }}
+          REFRESHED: ${{ steps.update.outputs.refreshed }}
+          CONFIG_UPDATED: ${{ steps.update.outputs.config_updated }}
+          UPSTREAM_CHANGED: ${{ steps.update.outputs.upstream_changed }}
+        run: |
+          case "${DISTRO}" in
+          arch)
+            NAME="Arch"
+            PREFIX="pkg/arch"
+            PATHS=("pkg/arch/kernel")
+            SUBJECT="Update Arch kernel to v${VERSION}"
+            ;;
+          debian)
+            NAME="Debian"
+            PREFIX="pkg/debian"
+            PATHS=("pkg/debian/kernel")
+            SUBJECT="Update Debian kernel to v${VERSION}"
+            REFRESH_SUBJECT="${PREFIX}: Rebase packaging patches onto v${VERSION}"
+            ;;
+          fedora)
+            NAME="Fedora"
+            PREFIX="pkg/fedora"
+            PATHS=("pkg/fedora/kernel-surface")
+            SUBJECT="Update Fedora kernels to v${VERSION}"
+            REFRESH_SUBJECT="${PREFIX}: Update build-system patches"
+            ;;
+          esac
+
+          if [ "${RELEASE}" != "1" ]; then
+            SUBJECT="${PREFIX}: Bump release to ${PACKAGE_VERSION}"
+          fi
+
+          BRANCH="autoupdate/${DISTRO}-${PACKAGE_VERSION}"
+
+          if git ls-remote --exit-code --heads origin "${BRANCH}" > /dev/null; then
+            echo "::error::Branch ${BRANCH} already exists, is there an open pull request?"
+            exit 1
+          fi
+
+          git config user.name "surfacebot"
+          git config user.email "surfacebot@users.noreply.github.com"
+
+          BASE="$(git rev-parse HEAD)"
+          git checkout -b "${BRANCH}"
+
+          # Refreshed build-system patches go into a separate commit
+          if [ -n "${REFRESHED}" ]; then
+            IFS=',' read -ra DIRS <<< "${REFRESHED}"
+            git add -- "${DIRS[@]}"
+            git commit -F - <<EOF
+          ${REFRESH_SUBJECT}
+
+          Refresh the packaging patches for ${NAME} kernel ${VERSION}. The
+          patches in the following directories needed a 3-way merge:
+
+          $(printf -- '- %s\n' "${DIRS[@]}")
+          EOF
+          fi
+
+          git add -- "${PATHS[@]}"
+          git commit -m "${SUBJECT}"
+
+          if [ -n "${REFRESHED}" ] || [ "${CONFIG_UPDATED}" = "1" ] || [ "${UPSTREAM_CHANGED}" = "1" ]; then
+            LABEL="autoupdate:needs-review"
+          else
+            LABEL="autoupdate:trivial"
+          fi
+
+          {
+            echo "name=${NAME}"
+            echo "branch=${BRANCH}"
+            echo "label=${LABEL}"
+          } >> "${GITHUB_OUTPUT}"
+
+          {
+            echo "## ${NAME} package update to ${PACKAGE_VERSION}"
+            echo ""
+            echo '```'
+            git log --stat "${BASE}..HEAD"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Push branch
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git push -u origin "${{ steps.commit.outputs.branch }}"
+
+      - name: Create pull request
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.LINUX_SURFACE_BOT_TOKEN }}
+          NAME: ${{ steps.commit.outputs.name }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+          LABEL: ${{ steps.commit.outputs.label }}
+          VERSION: ${{ steps.update.outputs.version }}
+          PACKAGE_VERSION: ${{ steps.update.outputs.package_version }}
+          REFRESHED: ${{ steps.update.outputs.refreshed }}
+          CONFIG_UPDATED: ${{ steps.update.outputs.config_updated }}
+          PACKAGING: ${{ steps.update.outputs.packaging }}
+          UPSTREAM_CHANGED: ${{ steps.update.outputs.upstream_changed }}
+          UPSTREAM_DIFF: ${{ steps.update.outputs.upstream_diff }}
+        run: |
+          gh label create autoupdate --force --color "1d76db" \
+            --description "Created by the autoupdate workflows"
+          gh label create autoupdate:trivial --force --color "0e8a16" \
+            --description "Automatic update without manual changes"
+          gh label create autoupdate:needs-review --force --color "d93f0b" \
+            --description "Automatic update that needs a closer review"
+
+          case "${DISTRO}" in
+          arch)
+            TAGS="arch-${PACKAGE_VERSION}"
+            ;;
+          debian)
+            TAGS="debian-${PACKAGE_VERSION}"
+            ;;
+          fedora)
+            TAGS="$(find .github/workflows -name 'fedora-*.yml' -printf '%f\n' \
+              | sed -E 's/fedora-([0-9]+)\.yml/\1/' | sort -n \
+              | sed "s/.*/fedora-&-${PACKAGE_VERSION}/")"
+            ;;
+          esac
+
+          if [ -n "${REFRESHED}" ]; then
+            REVIEW="⚠️ Packaging patches needed a 3-way merge and were regenerated, please review: \`${REFRESHED//,/\`, \`}\`"
+          else
+            REVIEW="✅ All patches applied without changes."
+          fi
+
+          if [ "${UPSTREAM_CHANGED}" = "1" ]; then
+            REVIEW="${REVIEW}"$'\n\n'"⚠️ The upstream PKGBUILD changed (apart from version and checksums), please check whether these changes need to be adopted:"$'\n\n'"<details><summary>Upstream PKGBUILD changes</summary>"$'\n\n```diff\n'"$(cat "${UPSTREAM_DIFF}")"$'\n```\n\n'"</details>"
+          fi
+
+          if [ "${CONFIG_UPDATED}" = "1" ]; then
+            REVIEW="${REVIEW}"$'\n\n'"⚠️ The base config has been updated from Ubuntu mainline build ${PACKAGING}, please review the config changes."
+          fi
+
+          gh pr create \
+            --title "${NAME}: Automatic update to ${PACKAGE_VERSION}" \
+            --label autoupdate --label "${LABEL}" \
+            --base master \
+            --head "${BRANCH}" \
+            --body "$(cat <<EOF
+          ## Summary
+
+          Automatic update of the ${NAME} kernel package to **${PACKAGE_VERSION}**.
+
+          ${REVIEW}
+
+          The package builds run as checks on this pull request.
+
+          ## Release
+
+          After merging, the packages built for this pull request are released and staged in the package repository automatically (see \`release-package.yml\`), as:
+
+          $(for TAG in ${TAGS}; do echo "- \`${TAG}\`"; done)
+
+          If that fails for a target, re-run the release with \`gh workflow run release-package.yml -f pr=<number>\`, or rebuild and release it with \`gh workflow run <workflow> -f release=true\`.
+
+          ---
+          Generated automatically by the package update workflow.
+          EOF
+          )"

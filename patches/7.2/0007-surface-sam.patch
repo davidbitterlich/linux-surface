@@ -1,4 +1,4 @@
-From a927e0e7b806df43d7dbbce5951fceb0ab6b7cd4 Mon Sep 17 00:00:00 2001
+From 6116ada2a2c6805841808b1590824fab64c4f915 Mon Sep 17 00:00:00 2001
 From: Maximilian Luz <luzmaximilian@gmail.com>
 Date: Fri, 17 Jun 2022 02:14:00 +0200
 Subject: [PATCH] rtc: Add basic support for RTC via Surface System Aggregator
@@ -14,7 +14,7 @@ Patchset: surface-sam
  create mode 100644 drivers/rtc/rtc-surface.c
 
 diff --git a/drivers/rtc/Kconfig b/drivers/rtc/Kconfig
-index 01def8231873..9580bc4bbb02 100644
+index 01def8231..9580bc4bb 100644
 --- a/drivers/rtc/Kconfig
 +++ b/drivers/rtc/Kconfig
 @@ -1425,6 +1425,13 @@ config RTC_DRV_NTXEC
@@ -32,7 +32,7 @@ index 01def8231873..9580bc4bbb02 100644
  
  config RTC_DRV_ASM9260
 diff --git a/drivers/rtc/Makefile b/drivers/rtc/Makefile
-index 0347645b021f..34f2cacd017a 100644
+index 0347645b0..34f2cacd0 100644
 --- a/drivers/rtc/Makefile
 +++ b/drivers/rtc/Makefile
 @@ -185,6 +185,7 @@ obj-$(CONFIG_RTC_DRV_SUN4V)	+= rtc-sun4v.o
@@ -45,7 +45,7 @@ index 0347645b021f..34f2cacd017a 100644
  obj-$(CONFIG_RTC_DRV_TI_K3)	+= rtc-ti-k3.o
 diff --git a/drivers/rtc/rtc-surface.c b/drivers/rtc/rtc-surface.c
 new file mode 100644
-index 000000000000..f6c17c4e98d5
+index 000000000..f6c17c4e9
 --- /dev/null
 +++ b/drivers/rtc/rtc-surface.c
 @@ -0,0 +1,129 @@
@@ -181,7 +181,7 @@ index 000000000000..f6c17c4e98d5
 -- 
 2.55.0
 
-From a66fa65ee23922c37179dc18cd9dbbb9b4b5de89 Mon Sep 17 00:00:00 2001
+From 3d2eca65f9c3b68052e64824bd5c37af22fa2b4f Mon Sep 17 00:00:00 2001
 From: Maximilian Luz <luzmaximilian@gmail.com>
 Date: Sun, 20 Apr 2025 01:05:14 +0200
 Subject: [PATCH] platform/surface: aggregator_registry: Add Surface Laptop 7
@@ -193,7 +193,7 @@ Patchset: surface-sam
  1 file changed, 3 insertions(+)
 
 diff --git a/drivers/platform/surface/surface_aggregator_registry.c b/drivers/platform/surface/surface_aggregator_registry.c
-index d37a7e4c6b02..e0c07e5d8ec4 100644
+index d37a7e4c6..e0c07e5d8 100644
 --- a/drivers/platform/surface/surface_aggregator_registry.c
 +++ b/drivers/platform/surface/surface_aggregator_registry.c
 @@ -487,6 +487,9 @@ static const struct acpi_device_id ssam_platform_hub_acpi_match[] = {

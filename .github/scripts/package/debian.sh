@@ -15,8 +15,9 @@ apt-get()
     command apt-get -y "$@"
 }
 
-MAINLINE_REPO="git://git.launchpad.net/~ubuntu-kernel-test/ubuntu/+source/linux/+git/mainline-crack"
-MAINLINE_BRANCH="cod/mainline"
+STABLE_REPO="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git"
+
+LLVM_VERSION="18"
 
 case "${1:-}" in
 setup-builddeps)
@@ -31,9 +32,16 @@ setup-builddeps)
     apt-get update
     apt-get upgrade
     apt-get install build-essential fakeroot rsync git wget software-properties-common \
-            zstd lz4 sbsigntool debhelper dpkg-dev dpkg-sig pkg-config \
-            llvm-15 clang-15 libclang-15-dev 
+            zstd lz4 sbsigntool debhelper dpkg-dev dpkg-sig pkg-config
     apt-get build-dep linux
+
+    # install a recent LLVM / libclang (required by bindgen for building rust support)
+    wget -qO /etc/apt/trusted.gpg.d/apt.llvm.org.asc https://apt.llvm.org/llvm-snapshot.gpg.key
+    echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" \
+        > /etc/apt/sources.list.d/llvm.list
+
+    apt-get update
+    apt-get install "llvm-${LLVM_VERSION}" "clang-${LLVM_VERSION}" "libclang-${LLVM_VERSION}-dev"
 
     # install python 3.11, required for configuring the kernel via Ubuntu's annotation format
     add-apt-repository -y ppa:deadsnakes
@@ -66,6 +74,7 @@ setup-secureboot)
     ;;
 build-packages)
     export PATH="$HOME/.cargo/bin:$PATH"
+    export LIBCLANG_PATH="/usr/lib/llvm-${LLVM_VERSION}/lib"
 
     pushd pkg/debian/kernel || exit 1
 
@@ -75,9 +84,8 @@ build-packages)
     git config --global user.name "surfacebot"
     git config --global user.email "surfacebot@users.noreply.github.com"
 
-    # get ubuntu mainline source
-    # see https://kernel.ubuntu.com/~kernel-ppa/mainline
-    git clone "${MAINLINE_REPO}" --branch "${MAINLINE_BRANCH}/v${KERNEL_VERSION}" --depth 1 linux
+    # get upstream kernel source
+    git clone "${STABLE_REPO}" --branch "v${KERNEL_VERSION}" --depth 1 linux
 
     if [ -d "keys" ]; then
         mv keys linux
@@ -102,23 +110,23 @@ build-packages)
     git add .
     git commit --allow-empty -m "Apply linux-surface patches"
 
-    # generate base config
-    ./debian/scripts/misc/annotations --arch amd64 --flavour generic --export > ../base.config
-
-    # merge configs
+    # merge configs, the base config is taken from the Ubuntu mainline build
+    # (see UBUNTU_MAINLINE_VERSION and https://kernel.ubuntu.com/mainline)
     ./scripts/kconfig/merge_config.sh \
-        ../base.config \
+        ../config.amd64 \
         ../ubuntu.config \
         "../../../../configs/surface-${KERNEL_MAJORVER}.config"
     
     # Explicitly set package version, including revision. This is picked up by 'make bindeb-pkg'.
-    export KDEB_PKGVERSION="${KERNEL_VERSION}${KERNEL_LOCALVERSION}-${KERNEL_REVISION}"
+    export KDEB_PKGVERSION="${KERNEL_VERSION}-${KERNEL_REVISION}"
     
     # The DPKG in Ubuntu 22.04 defaults to using ZSTD, which is not yet supported by the DPKG in Debian 11
     export KDEB_COMPRESS="xz"
 
-    # Set kernel localversion
-    export LOCALVERSION="${KERNEL_LOCALVERSION}-${KERNEL_REVISION}"
+    # Set kernel localversion. Following the Debian/Ubuntu convention, the
+    # kernel release has to end with the flavour (e.g. 7.2.11-1-surface), as
+    # some tools (e.g. live-build) rely on that.
+    export LOCALVERSION="-${KERNEL_REVISION}${KERNEL_LOCALVERSION}"
 
     # Get debug info for rust
     make rustavailable
@@ -130,7 +138,7 @@ build-packages)
 
     pushd pkg/debian/meta || exit 1
 
-    ./mkdebian.sh "$(make -C ../kernel/linux -s kernelrelease)"
+    ./mkdebian.sh "$(make -C ../kernel/linux -s kernelrelease)" "${KDEB_PKGVERSION}"
     dpkg-buildpackage -b -Zxz
 
     popd || exit 1
