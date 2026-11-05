@@ -38,26 +38,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Determine release tag
-        id: tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE: ${{ inputs.release }}
-        run: |
-          VERSIONS="$(bash ./.github/scripts/autoupdate/package/fedora.sh current)"
-          VERSION="$(echo "${VERSIONS}" | sed -n 's/^version=//p')"
-          REVISION="$(echo "${VERSIONS}" | sed -n 's/^release=//p')"
-          TAG="fedora-${FEDORA}-${VERSION}-${REVISION}"
-
-          echo "Release tag: ${TAG}"
-          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
-
-          # Fail early instead of after the build
-          if [ "${RELEASE}" = "true" ] && gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" > /dev/null 2>&1; then
-            echo "::error::Tag ${TAG} already exists, bump the package release to release a new build"
-            exit 1
-          fi
-
       - name: Initialize containers
         run: |
           bash ./.github/scripts/container/create.sh \
