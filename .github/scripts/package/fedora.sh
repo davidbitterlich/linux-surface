@@ -25,7 +25,7 @@ setup-builddeps)
     dnf builddep kernel
 
     # Install additional build dependencies
-    dnf install sbsigntools
+    dnf install sbsigntools openssl
 
     # The kernel spec computes the FIPS hmac of the kernel image with
     # sha512hmac, which uses the kernel crypto API (AF_ALG) of the host and

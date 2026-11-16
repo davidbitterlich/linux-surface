@@ -1,4 +1,4 @@
-From 5ab0eb4933c4682e041e25ebf182b2c127c25555 Mon Sep 17 00:00:00 2001
+From e6b5e109093acd2da08712d996c2b8ba81ea84bb Mon Sep 17 00:00:00 2001
 From: Dorian Stoll <dorian.stoll@tmsp.io>
 Date: Sat, 22 Jul 2023 10:45:33 +0200
 Subject: [PATCH] Use a custom key and certificate for Secure Boot signing
@@ -9,10 +9,10 @@ Signed-off-by: Dorian Stoll <dorian.stoll@tmsp.io>
  1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/redhat/kernel.spec.template b/redhat/kernel.spec.template
-index 9c57441d3227..f1b35d2dc279 100644
+index b371a121428b..17603f2c9807 100644
 --- a/redhat/kernel.spec.template
 +++ b/redhat/kernel.spec.template
-@@ -930,6 +930,7 @@ BuildRequires: system-sb-certs
+@@ -935,6 +935,7 @@ BuildRequires: system-sb-certs
  %ifarch x86_64 aarch64 riscv64
  BuildRequires: nss-tools
  BuildRequires: pesign >= 0.10-4
@@ -20,7 +20,7 @@ index 9c57441d3227..f1b35d2dc279 100644
  %endif
  %endif
  %endif
-@@ -1013,6 +1014,13 @@ Source13: redhatsecureboot501.cer
+@@ -1018,6 +1019,13 @@ Source13: redhatsecureboot501.cer
  %define signing_key_filename kernel-signing-s390.cer
  %endif
  
@@ -34,7 +34,7 @@ index 9c57441d3227..f1b35d2dc279 100644
  # pesign cert name is auto-discovered during build from secureboot_key_0,
  # see pesign_name_0 shell variable
  #
-@@ -2638,7 +2646,7 @@ BuildKernel() {
+@@ -2698,7 +2706,7 @@ BuildKernel() {
  
      %ifarch x86_64 aarch64
      %{log_msg "Sign kernel image"}
@@ -44,4 +44,5 @@ index 9c57441d3227..f1b35d2dc279 100644
      %ifarch s390x ppc64le
      if [ -x /usr/bin/rpm-sign ]; then
 -- 
-2.53.0
+2.56.0
+
