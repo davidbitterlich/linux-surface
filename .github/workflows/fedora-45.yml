@@ -111,35 +111,30 @@ jobs:
           gh release create "${TAG}" -R "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" \
             --title "${TAG}" --notes "" ./*-latest/*
 
-  repo:
-    name: Update package repository
-    needs: [build, release]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: fedora-${{ env.FEDORA }}-latest
-          path: fedora-${{ env.FEDORA }}-latest
-
-      - name: Initialize containers
+      - name: Create OCI RPM carrier image
         run: |
-          bash ./.github/scripts/container/create.sh \
-            registry.fedoraproject.org/fedora:${{ env.FEDORA }}
+          mkdir image
+          cp ./fedora-${{ env.FEDORA }}-latest/*.rpm image/
 
-      - name: Update repository
-        env:
-          SURFACEBOT_TOKEN: ${{ secrets.LINUX_SURFACE_BOT_TOKEN }}
-          GIT_REF: refs/tags/${{ needs.build.outputs.tag }}
-          BRANCH_STAGING: u/staging
+          cat > image/Containerfile <<'EOF'
+          FROM scratch
+          COPY *.rpm /packages/
+          EOF
+
+          VERSION="${GITHUB_REF_NAME:-dev}"
+
+          podman build \
+            -t ${OCI_REPO,,}:${VERSION}-fc${FEDORA} \
+            -t ${OCI_REPO,,}:latest-fc${FEDORA} \
+            image
+
+      - name: Login to ghcr.io
         run: |
-          bash ./.github/scripts/container/exec.sh \
-            -e SURFACEBOT_TOKEN \
-            -e GIT_REF \
-            -e BRANCH_STAGING \
-            -e GITHUB_REPOSITORY \
-            -- \
-            bash ./.github/scripts/repository/fedora.sh ${{ env.FEDORA }}
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Push image
+        run: |
+          podman push ${OCI_REPO,,}:latest-fc${{ env.FEDORA }}
+          
